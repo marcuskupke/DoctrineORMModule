@@ -24,15 +24,11 @@ final class EntityManagerFactory extends AbstractFactory
     {
         $options = $this->getOptions($container, 'entitymanager');
         assert($options instanceof DoctrineORMModuleEntityManager);
-        $connection = $container->get($options->getConnection());
-        $config     = $container->get($options->getConfiguration());
+        $connection   = $container->get($options->getConnection());
+        $config       = $container->get($options->getConfiguration());
+        $eventManager = $container->get($options->getEntityResolver());
 
-        // initializing the resolver
-        // @todo should actually attach it to a fetched event manager here, and not
-        //       rely on its factory code
-        $container->get($options->getEntityResolver());
-
-        return EntityManager::create($connection, $config);
+        return new EntityManager($connection, $config, $eventManager);
     }
 
     public function getOptionsClass(): string
