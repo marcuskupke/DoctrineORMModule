@@ -6,6 +6,7 @@ namespace DoctrineORMModuleTest\Service;
 
 use Doctrine\Common\Cache\ArrayCache;
 use Doctrine\Common\Cache\Psr6\CacheAdapter;
+use Psr\Cache\CacheItemPoolInterface;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\Middleware;
 use Doctrine\ORM\Cache\CacheConfiguration;
@@ -175,7 +176,7 @@ class ConfigurationFactoryTest extends TestCase
         $this->serviceManager->setService('config', $config);
         $factory   = new ConfigurationFactory('test_default');
         $ormConfig = $factory($this->serviceManager, Configuration::class);
-        $this->assertInstanceOf(get_class($this->getArrayCacheInstance()), $ormConfig->getHydrationCacheImpl());
+        $this->assertInstanceOf(CacheItemPoolInterface::class, $ormConfig->getHydrationCache());
     }
 
     public function testCanSetDefaultRepositoryClass(): void
@@ -195,7 +196,7 @@ class ConfigurationFactoryTest extends TestCase
 
         $factory   = new ConfigurationFactory('test_default');
         $ormConfig = $factory($this->serviceManager, Configuration::class);
-        $this->assertInstanceOf(get_class($this->getArrayCacheInstance()), $ormConfig->getHydrationCacheImpl());
+        $this->assertInstanceOf(CacheItemPoolInterface::class, $ormConfig->getHydrationCache());
     }
 
     public function testAcceptsMetadataFactory(): void

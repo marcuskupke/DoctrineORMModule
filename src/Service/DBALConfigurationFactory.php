@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace DoctrineORMModule\Service;
 
+use Doctrine\Common\Cache\Cache as DoctrineCache;
+use Doctrine\Common\Cache\Psr6\CacheAdapter;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Driver\Middleware;
 use Doctrine\DBAL\Types\Type;
 use DoctrineORMModule\Options\Configuration as DoctrineORMModuleConfiguration;
 use InvalidArgumentException;
 use Laminas\ServiceManager\Factory\FactoryInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
 use UnexpectedValueException;
@@ -45,14 +48,22 @@ class DBALConfigurationFactory implements FactoryInterface
     public function setupDBALConfiguration(ContainerInterface $serviceLocator, Configuration $config): void
     {
         $options = $this->getOptions($serviceLocator);
-        $config->setResultCacheImpl($serviceLocator->get($options->resultCache));
+        $resultCache = $serviceLocator->get($options->resultCache);
+        if ($resultCache instanceof DoctrineCache) {
+            $resultCache = CacheAdapter::wrap($resultCache);
+        }
+
+        $config->setResultCache($resultCache);
 
         $sqlLogger = $options->sqlLogger;
         if (is_string($sqlLogger) && $serviceLocator->has($sqlLogger)) {
             $sqlLogger = $serviceLocator->get($sqlLogger);
         }
 
-        $config->setSQLLogger($sqlLogger);
+        // setSQLLogger was removed in DBAL 4; SQL logging is handled via Middleware
+        if (method_exists($config, 'setSQLLogger')) {
+            $config->setSQLLogger($sqlLogger);
+        }
 
         if (method_exists($config, 'setMiddlewares')) {
             $middlewares = [];

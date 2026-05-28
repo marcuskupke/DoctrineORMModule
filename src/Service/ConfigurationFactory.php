@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace DoctrineORMModule\Service;
 
+use Doctrine\Common\Cache\Cache as DoctrineCache;
+use Doctrine\Common\Cache\Psr6\CacheAdapter;
 use Doctrine\ORM\Cache\CacheConfiguration;
 use Doctrine\ORM\Cache\DefaultCacheFactory;
 use Doctrine\ORM\Cache\RegionsConfiguration;
@@ -12,6 +14,7 @@ use Doctrine\ORM\Mapping\EntityListenerResolver;
 use DoctrineORMModule\Options\Configuration as DoctrineORMModuleConfiguration;
 use DoctrineORMModule\Service\DBALConfigurationFactory as DoctrineConfigurationFactory;
 use Laminas\ServiceManager\Exception\InvalidArgumentException;
+use Psr\Cache\CacheItemPoolInterface;
 use Psr\Container\ContainerInterface;
 
 use function is_string;
@@ -42,7 +45,10 @@ final class ConfigurationFactory extends DoctrineConfigurationFactory
         $config->setCustomStringFunctions($options->getStringFunctions());
         $config->setCustomNumericFunctions($options->getNumericFunctions());
 
-        $config->setClassMetadataFactoryName($options->getClassMetadataFactoryName());
+        $classMetadataFactoryName = $options->getClassMetadataFactoryName();
+        if ($classMetadataFactoryName !== null) {
+            $config->setClassMetadataFactoryName($classMetadataFactoryName);
+        }
 
         foreach ($options->getNamedQueries() as $name => $query) {
             $config->addNamedQuery($name, $query);
@@ -60,10 +66,10 @@ final class ConfigurationFactory extends DoctrineConfigurationFactory
             $config->addFilter($name, $class);
         }
 
-        $config->setMetadataCacheImpl($serviceLocator->get($options->getMetadataCache()));
-        $config->setQueryCacheImpl($serviceLocator->get($options->getQueryCache()));
-        $config->setResultCacheImpl($serviceLocator->get($options->getResultCache()));
-        $config->setHydrationCacheImpl($serviceLocator->get($options->getHydrationCache()));
+        $config->setMetadataCache($this->toPsr6Cache($serviceLocator->get($options->getMetadataCache())));
+        $config->setQueryCache($this->toPsr6Cache($serviceLocator->get($options->getQueryCache())));
+        $config->setResultCache($this->toPsr6Cache($serviceLocator->get($options->getResultCache())));
+        $config->setHydrationCache($this->toPsr6Cache($serviceLocator->get($options->getHydrationCache())));
         $config->setMetadataDriverImpl($serviceLocator->get($options->getDriver()));
 
         $namingStrategy = $options->getNamingStrategy();
@@ -177,5 +183,14 @@ final class ConfigurationFactory extends DoctrineConfigurationFactory
     protected function getOptionsClass(): string
     {
         return DoctrineORMModuleConfiguration::class;
+    }
+
+    private function toPsr6Cache(mixed $cache): CacheItemPoolInterface
+    {
+        if ($cache instanceof DoctrineCache) {
+            return CacheAdapter::wrap($cache);
+        }
+
+        return $cache;
     }
 }
