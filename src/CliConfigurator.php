@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace DoctrineORMModule;
 
+use Doctrine\DBAL\Tools\Console\Command\ReservedWordsCommand;
 use Doctrine\Migrations\Tools\Console\Command\VersionCommand;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Tools\Console\Helper\EntityManagerHelper;
 use Laminas\Stdlib\ArrayUtils;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Application;
-use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Helper\QuestionHelper;
-use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputOption;
 
 use function class_exists;
@@ -24,19 +21,13 @@ class CliConfigurator
     /** @var string[] */
     private array $commands = [
         'doctrine.dbal_cmd.runsql',
-        'doctrine.dbal_cmd.reserved_words',
         'doctrine.orm_cmd.clear_cache_metadata',
         'doctrine.orm_cmd.clear_cache_result',
         'doctrine.orm_cmd.clear_cache_query',
         'doctrine.orm_cmd.schema_tool_create',
         'doctrine.orm_cmd.schema_tool_update',
         'doctrine.orm_cmd.schema_tool_drop',
-        'doctrine.orm_cmd.ensure_production_settings',
-        'doctrine.orm_cmd.convert_d1_schema',
-        'doctrine.orm_cmd.generate_repositories',
-        'doctrine.orm_cmd.generate_entities',
         'doctrine.orm_cmd.generate_proxies',
-        'doctrine.orm_cmd.convert_mapping',
         'doctrine.orm_cmd.run_dql',
         'doctrine.orm_cmd.validate_schema',
         'doctrine.orm_cmd.info',
@@ -73,21 +64,7 @@ class CliConfigurator
             $cli->add($command);
         }
 
-        $objectManager = $this->container->get($this->getObjectManagerName());
-
-        $helpers = $this->getHelpers($objectManager);
-        foreach ($helpers as $name => $instance) {
-            $cli->getHelperSet()->set($instance, $name);
-        }
-    }
-
-    /** @return array<string,Helper> */
-    private function getHelpers(EntityManagerInterface $objectManager): array
-    {
-        return [
-            'dialog' => new QuestionHelper(),
-            'em' => new EntityManagerHelper($objectManager),
-        ];
+        $cli->getHelperSet()->set(new QuestionHelper(), 'dialog');
     }
 
     private function createObjectManagerInputOption(): InputOption
@@ -101,24 +78,18 @@ class CliConfigurator
         );
     }
 
-    private function getObjectManagerName(): string
-    {
-        $arguments = new ArgvInput();
-
-        if (! $arguments->hasParameterOption('--object-manager')) {
-            return $this->defaultObjectManagerName;
-        }
-
-        return $arguments->getParameterOption('--object-manager');
-    }
-
     /** @return string[] */
     private function getAvailableCommands(): array
     {
-        if (class_exists(VersionCommand::class)) {
-            return ArrayUtils::merge($this->commands, $this->migrationCommands);
+        $commands = $this->commands;
+        if (class_exists(ReservedWordsCommand::class)) {
+            $commands[] = 'doctrine.dbal_cmd.reserved_words';
         }
 
-        return $this->commands;
+        if (class_exists(VersionCommand::class)) {
+            $commands = ArrayUtils::merge($commands, $this->migrationCommands);
+        }
+
+        return $commands;
     }
 }

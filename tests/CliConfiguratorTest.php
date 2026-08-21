@@ -12,9 +12,9 @@ use Doctrine\Migrations\Tools\Console\Command\ExecuteCommand;
 use Doctrine\Migrations\Tools\Console\Command\GenerateCommand;
 use Doctrine\Migrations\Tools\Console\Command\VersionCommand;
 use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Tools\Console\Command\AbstractEntityManagerCommand;
 use Doctrine\ORM\Tools\Console\Command\ClearCache\QueryCommand;
 use Doctrine\ORM\Tools\Console\Command\ClearCache\ResultCommand;
-use Doctrine\ORM\Tools\Console\Command\EnsureProductionSettingsCommand;
 use Doctrine\ORM\Tools\Console\Command\GenerateProxiesCommand;
 use Doctrine\ORM\Tools\Console\Command\InfoCommand;
 use Doctrine\ORM\Tools\Console\Command\RunDqlCommand;
@@ -22,12 +22,13 @@ use Doctrine\ORM\Tools\Console\Command\SchemaTool\CreateCommand;
 use Doctrine\ORM\Tools\Console\Command\SchemaTool\DropCommand;
 use Doctrine\ORM\Tools\Console\Command\SchemaTool\UpdateCommand;
 use Doctrine\ORM\Tools\Console\Command\ValidateSchemaCommand;
-use Doctrine\ORM\Tools\Console\Helper\EntityManagerHelper;
 use DoctrineORMModule\CliConfigurator;
 use DoctrineORMModuleTest\ServiceManagerFactory;
 use Laminas\ServiceManager\ServiceManager;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
 
 use function assert;
 use function class_exists;
@@ -52,11 +53,10 @@ class CliConfiguratorTest extends TestCase
         $cliConfigurator = new CliConfigurator($this->serviceManager);
         $cliConfigurator->configure($application);
 
-        $entityManagerHelper = $application->getHelperSet()->get('entityManager');
-        assert($entityManagerHelper instanceof EntityManagerHelper);
+        $command = $application->get('orm:info');
+        assert($command instanceof AbstractEntityManagerCommand);
 
-        $this->assertInstanceOf(EntityManagerHelper::class, $entityManagerHelper);
-        $this->assertSame($this->objectManager, $entityManagerHelper->getEntityManager());
+        $this->assertSame($this->objectManager, $this->getEntityManagerProvider($command)->getDefaultManager());
     }
 
     /** @backupGlobals enabled */
@@ -85,26 +85,20 @@ class CliConfiguratorTest extends TestCase
         $cliConfigurator = new CliConfigurator($this->serviceManager);
         $cliConfigurator->configure($application);
 
-        $entityManagerHelper = $application->getHelperSet()->get('entityManager');
-        assert($entityManagerHelper instanceof EntityManagerHelper);
+        $command = $application->get('orm:info');
+        assert($command instanceof AbstractEntityManagerCommand);
 
-        $this->assertInstanceOf(EntityManagerHelper::class, $entityManagerHelper);
-        $this->assertSame($entityManager, $entityManagerHelper->getEntityManager());
+        $this->assertSame($entityManager, $this->getEntityManagerProvider($command)->getDefaultManager());
     }
 
-    public function testValidHelpers(): void
+    public function testDialogHelperIsRegistered(): void
     {
         $application = new Application();
 
         $cliConfigurator = new CliConfigurator($this->serviceManager);
         $cliConfigurator->configure($application);
 
-        $helperSet = $application->getHelperSet();
-
-        $emHelper = $helperSet->get('em');
-        assert($emHelper instanceof EntityManagerHelper);
-        $this->assertInstanceOf(EntityManagerHelper::class, $emHelper);
-        $this->assertSame($this->objectManager, $emHelper->getEntityManager());
+        $this->assertTrue($application->getHelperSet()->has('dialog'));
     }
 
     /** @dataProvider dataProviderForTestValidCommands */
@@ -140,14 +134,10 @@ class CliConfiguratorTest extends TestCase
     /** @return list<array{string, class-string}> */
     public function dataProviderForTestValidCommands(): array
     {
-        return [
+        $commands = [
             [
                 'dbal:run-sql',
                 RunSqlCommand::class,
-            ],
-            [
-                'dbal:reserved-words',
-                ReservedWordsCommand::class,
             ],
             [
                 'orm:clear-cache:query',
@@ -160,10 +150,6 @@ class CliConfiguratorTest extends TestCase
             [
                 'orm:generate-proxies',
                 GenerateProxiesCommand::class,
-            ],
-            [
-                'orm:ensure-production-settings',
-                EnsureProductionSettingsCommand::class,
             ],
             [
                 'orm:info',
@@ -202,5 +188,19 @@ class CliConfiguratorTest extends TestCase
                 ExecuteCommand::class,
             ],
         ];
+
+        if (class_exists(ReservedWordsCommand::class)) {
+            $commands[] = ['dbal:reserved-words', ReservedWordsCommand::class];
+        }
+
+        return $commands;
+    }
+
+    private function getEntityManagerProvider(Command $command): object
+    {
+        $property = new ReflectionProperty(AbstractEntityManagerCommand::class, 'entityManagerProvider');
+        $property->setAccessible(true);
+
+        return $property->getValue($command);
     }
 }

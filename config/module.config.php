@@ -1,6 +1,7 @@
 <?php
 
 use Doctrine\DBAL\Tools\Console\Command\ImportCommand;
+use Doctrine\DBAL\Tools\Console\Command\ReservedWordsCommand;
 use Doctrine\Laminas\Hydrator\DoctrineObject;
 use Doctrine\ORM\Tools\Console\Command;
 use Doctrine\Persistence\Mapping\Driver\MappingDriverChain;
@@ -191,25 +192,17 @@ $result = [
             'Doctrine\ORM\EntityManager' => Service\EntityManagerAliasCompatFactory::class,
             // DBAL commands
             'doctrine.dbal_cmd.runsql' => Service\RunSqlCommandFactory::class,
-            'doctrine.dbal_cmd.reserved_words'  => Service\ReservedWordsCommandFactory::class,
-        ],
-        'invokables' => [
             // ORM Commands
-            'doctrine.orm_cmd.clear_cache_metadata' => Command\ClearCache\MetadataCommand::class,
-            'doctrine.orm_cmd.clear_cache_result' => Command\ClearCache\ResultCommand::class,
-            'doctrine.orm_cmd.clear_cache_query' => Command\ClearCache\QueryCommand::class,
-            'doctrine.orm_cmd.schema_tool_create' => Command\SchemaTool\CreateCommand::class,
-            'doctrine.orm_cmd.schema_tool_update' => Command\SchemaTool\UpdateCommand::class,
-            'doctrine.orm_cmd.schema_tool_drop' => Command\SchemaTool\DropCommand::class,
-            'doctrine.orm_cmd.convert_d1_schema' => Command\ConvertDoctrine1SchemaCommand::class,
-            'doctrine.orm_cmd.generate_entities' => Command\GenerateEntitiesCommand::class,
-            'doctrine.orm_cmd.generate_proxies' => Command\GenerateProxiesCommand::class,
-            'doctrine.orm_cmd.convert_mapping' => Command\ConvertMappingCommand::class,
-            'doctrine.orm_cmd.run_dql' => Command\RunDqlCommand::class,
-            'doctrine.orm_cmd.validate_schema' => Command\ValidateSchemaCommand::class,
-            'doctrine.orm_cmd.info' => Command\InfoCommand::class,
-            'doctrine.orm_cmd.ensure_production_settings' => Command\EnsureProductionSettingsCommand::class,
-            'doctrine.orm_cmd.generate_repositories' => Command\GenerateRepositoriesCommand::class,
+            'doctrine.orm_cmd.clear_cache_metadata' => new Service\EntityManagerCommandFactory(Command\ClearCache\MetadataCommand::class),
+            'doctrine.orm_cmd.clear_cache_result' => new Service\EntityManagerCommandFactory(Command\ClearCache\ResultCommand::class),
+            'doctrine.orm_cmd.clear_cache_query' => new Service\EntityManagerCommandFactory(Command\ClearCache\QueryCommand::class),
+            'doctrine.orm_cmd.schema_tool_create' => new Service\EntityManagerCommandFactory(Command\SchemaTool\CreateCommand::class),
+            'doctrine.orm_cmd.schema_tool_update' => new Service\EntityManagerCommandFactory(Command\SchemaTool\UpdateCommand::class),
+            'doctrine.orm_cmd.schema_tool_drop' => new Service\EntityManagerCommandFactory(Command\SchemaTool\DropCommand::class),
+            'doctrine.orm_cmd.generate_proxies' => new Service\EntityManagerCommandFactory(Command\GenerateProxiesCommand::class),
+            'doctrine.orm_cmd.run_dql' => new Service\EntityManagerCommandFactory(Command\RunDqlCommand::class),
+            'doctrine.orm_cmd.validate_schema' => new Service\EntityManagerCommandFactory(Command\ValidateSchemaCommand::class),
+            'doctrine.orm_cmd.info' => new Service\EntityManagerCommandFactory(Command\InfoCommand::class),
         ],
     ],
 
@@ -293,6 +286,10 @@ $result = [
 
 if (class_exists(ImportCommand::class)) {
     $result['service_manager']['invokables']['doctrine.dbal_cmd.import'] = ImportCommand::class;
+}
+
+if (class_exists(ReservedWordsCommand::class)) {
+    $result['service_manager']['factories']['doctrine.dbal_cmd.reserved_words'] = Service\ReservedWordsCommandFactory::class;
 }
 
 return $result;
