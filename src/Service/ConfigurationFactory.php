@@ -58,12 +58,17 @@ final class ConfigurationFactory extends DoctrineConfigurationFactory
             $config->setClassMetadataFactoryName($classMetadataFactoryName);
         }
 
-        foreach ($options->getNamedQueries() as $name => $query) {
-            $config->addNamedQuery($name, $query);
+        // Named queries were removed in ORM 3.x, with no replacement.
+        if (method_exists($config, 'addNamedQuery')) {
+            foreach ($options->getNamedQueries() as $name => $query) {
+                $config->addNamedQuery($name, $query);
+            }
         }
 
-        foreach ($options->getNamedNativeQueries() as $name => $query) {
-            $config->addNamedNativeQuery($name, $query['sql'], new $query['rsm']());
+        if (method_exists($config, 'addNamedNativeQuery')) {
+            foreach ($options->getNamedNativeQueries() as $name => $query) {
+                $config->addNamedNativeQuery($name, $query['sql'], new $query['rsm']());
+            }
         }
 
         foreach ($options->getCustomHydrationModes() as $modeName => $hydrator) {
