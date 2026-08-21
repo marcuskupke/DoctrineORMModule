@@ -6,23 +6,19 @@ namespace DoctrineORMModuleTest\Assets\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * @ORM\Entity
- * @ORM\Table(name="doctrine_orm_module_test")
- */
+#[ORM\Entity]
+#[ORM\Table(name: 'doctrine_orm_module_test')]
 class TestEntity
 {
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer");
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     protected int $id;
 
-    /** @ORM\Column(type="string", nullable=true) */
+    #[ORM\Column(type: 'string', nullable: true)]
     protected string $username;
 
-    /** @ORM\Column(type="string", nullable=true) */
+    #[ORM\Column(type: 'string', nullable: true)]
     protected string $password;
 
     public function getId(): int|null

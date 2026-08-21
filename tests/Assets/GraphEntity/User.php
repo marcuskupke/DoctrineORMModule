@@ -12,33 +12,24 @@ use Doctrine\ORM\Mapping as ORM;
  * Part of the test assets used to produce a demo of graphs in the Laminas Developer Tools integration
  *
  * @link    http://www.doctrine-project.org/
- *
- * @ORM\Entity()
  */
+#[ORM\Entity]
 class User
 {
-    /**
-     * @ORM\Id()
-     * @ORM\GeneratedValue(strategy="AUTO")
-     * @ORM\Column(type="integer")
-     */
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    #[ORM\Column(type: 'integer')]
     protected int $id;
 
-    /**
-     * @ORM\ManyToMany(targetEntity="UserGroup", mappedBy="users")
-     *
-     * @var Collection|UserGroup[]
-     */
+    /** @var Collection|UserGroup[] */
+    #[ORM\ManyToMany(targetEntity: UserGroup::class, mappedBy: 'users')]
     protected Collection $groups;
 
-    /**
-     * @ORM\OneToMany(targetEntity="Session", mappedBy="user")
-     *
-     * @var Collection|Session[]
-     */
+    /** @var Collection|Session[] */
+    #[ORM\OneToMany(targetEntity: Session::class, mappedBy: 'user')]
     protected Collection $sessions;
 
-    /** @ORM\OneToOne(targetEntity="Address") */
+    #[ORM\OneToOne(targetEntity: Address::class)]
     protected Address $address;
 
     public function __construct()

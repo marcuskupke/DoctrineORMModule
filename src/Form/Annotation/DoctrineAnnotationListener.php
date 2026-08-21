@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DoctrineORMModule\Form\Annotation;
 
+use ArrayAccess;
 use ArrayObject;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ObjectManager;
@@ -16,6 +17,7 @@ use Laminas\Form\Element as LaminasFormElement;
 use function array_key_exists;
 use function array_merge;
 use function in_array;
+use function is_string;
 
 class DoctrineAnnotationListener extends AbstractListenerAggregate
 {
@@ -103,8 +105,9 @@ class DoctrineAnnotationListener extends AbstractListenerAggregate
     public function handleExcludeAssociation(EventInterface $event): bool
     {
         $metadata = $event->getParam('metadata');
+        $name     = $this->getName($event);
 
-        return $metadata && $metadata->isAssociationInverseSide($event->getParam('name'));
+        return $metadata && $name !== null && $metadata->isAssociationInverseSide($name);
     }
 
     /** @internal */
@@ -121,7 +124,8 @@ class DoctrineAnnotationListener extends AbstractListenerAggregate
     public function handleFilterField(EventInterface $event): void
     {
         $metadata = $event->getParam('metadata');
-        if (! $metadata || ! $metadata->hasField($event->getParam('name'))) {
+        $name     = $this->getName($event);
+        if (! $metadata || $name === null || ! $metadata->hasField($name)) {
             return;
         }
 
@@ -129,7 +133,7 @@ class DoctrineAnnotationListener extends AbstractListenerAggregate
 
         $inputSpec = $event->getParam('inputSpec');
 
-        switch ($metadata->getTypeOfField($event->getParam('name'))) {
+        switch ($metadata->getTypeOfField($name)) {
             case 'bool':
             case 'boolean':
                 $inputSpec['filters'][] = ['name' => 'Boolean'];
@@ -197,13 +201,14 @@ class DoctrineAnnotationListener extends AbstractListenerAggregate
         $this->prepareEvent($event);
 
         $metadata  = $event->getParam('metadata');
+        $name      = $this->getName($event);
         $inputSpec = $event->getParam('inputSpec');
 
-        if (! $metadata || ! $metadata->hasField($event->getParam('name'))) {
+        if (! $metadata || $name === null || ! $metadata->hasField($name)) {
             return;
         }
 
-        $inputSpec['required'] = ! $metadata->isNullable($event->getParam('name'));
+        $inputSpec['required'] = ! $metadata->isNullable($name);
     }
 
     /** @internal */
@@ -229,7 +234,7 @@ class DoctrineAnnotationListener extends AbstractListenerAggregate
             return;
         }
 
-        switch ($metadata->getTypeOfField($event->getParam('name'))) {
+        switch ($metadata->getTypeOfField($this->getName($event))) {
             case 'bigint':
             case 'integer':
             case 'smallint':
@@ -276,7 +281,7 @@ class DoctrineAnnotationListener extends AbstractListenerAggregate
 
         $inputSpec = $event->getParam('inputSpec');
 
-        switch ($metadata->getTypeOfField($event->getParam('name'))) {
+        switch ($metadata->getTypeOfField($this->getName($event))) {
             case 'bool':
             case 'boolean':
                 $inputSpec['validators'][] = [
@@ -312,26 +317,57 @@ class DoctrineAnnotationListener extends AbstractListenerAggregate
         }
     }
 
-    /** @return mixed[]|null */
-    protected function getFieldMapping(EventInterface $event): array|null
+    /**
+     * Doctrine ORM 2 returns a plain mapping array here, ORM 3 returns a
+     * Doctrine\ORM\Mapping\FieldMapping value object instead; both are
+     * accessed the same way by callers since the ORM 3 object implements
+     * ArrayAccess.
+     *
+     * @return mixed[]|ArrayAccess<string, mixed>|null
+     */
+    protected function getFieldMapping(EventInterface $event): mixed
     {
+        $name = $this->getName($event);
+        if ($name === null) {
+            return null;
+        }
+
         $metadata = $event->getParam('metadata');
-        if ($metadata && $metadata->hasField($event->getParam('name'))) {
-            return $metadata->getFieldMapping($event->getParam('name'));
+        if ($metadata && $metadata->hasField($name)) {
+            return $metadata->getFieldMapping($name);
         }
 
         return null;
     }
 
-    /** @return mixed[]|null */
-    protected function getAssociationMapping(EventInterface $event): array|null
+    /**
+     * Doctrine ORM 2 returns a plain mapping array here, ORM 3 returns a
+     * Doctrine\ORM\Mapping\AssociationMapping value object instead; both are
+     * accessed the same way by callers since the ORM 3 object implements
+     * ArrayAccess.
+     *
+     * @return mixed[]|ArrayAccess<string, mixed>|null
+     */
+    protected function getAssociationMapping(EventInterface $event): mixed
     {
+        $name = $this->getName($event);
+        if ($name === null) {
+            return null;
+        }
+
         $metadata = $event->getParam('metadata');
-        if ($metadata && $metadata->hasAssociation($event->getParam('name'))) {
-            return $metadata->getAssociationMapping($event->getParam('name'));
+        if ($metadata && $metadata->hasAssociation($name)) {
+            return $metadata->getAssociationMapping($name);
         }
 
         return null;
+    }
+
+    private function getName(EventInterface $event): string|null
+    {
+        $name = $event->getParam('name');
+
+        return is_string($name) ? $name : null;
     }
 
     protected function mergeAssociationOptions(ArrayObject $elementSpec, string $targetEntity): void

@@ -1,19 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace DoctrineORMModule\Ci\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * @ORM\Entity
- * @ORM\Table(name="entity")
- */
+#[ORM\Entity]
+#[ORM\Table(name: 'entity')]
 class Entity
 {
-    /**
-     * @ORM\Id
-     * @ORM\Column(type="integer");
-     * @ORM\GeneratedValue(strategy="AUTO")
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'integer')]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     public $id;
 }

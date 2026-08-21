@@ -21,6 +21,8 @@ use function is_string;
 use function method_exists;
 use function sprintf;
 
+use const PHP_VERSION_ID;
+
 final class ConfigurationFactory extends DoctrineConfigurationFactory
 {
     /**
@@ -38,6 +40,12 @@ final class ConfigurationFactory extends DoctrineConfigurationFactory
         $config->setAutoGenerateProxyClasses($options->getGenerateProxies());
         $config->setProxyDir($options->getProxyDir());
         $config->setProxyNamespace($options->getProxyNamespace());
+
+        // ORM 3.x: lazy proxies are generated via PHP 8.4 native lazy objects when
+        // available, and via symfony/var-exporter otherwise. Not present on ORM 2.x.
+        if (method_exists($config, 'enableNativeLazyObjects')) {
+            $config->enableNativeLazyObjects(PHP_VERSION_ID >= 80400);
+        }
 
         $config->setEntityNamespaces($options->getEntityNamespaces());
 

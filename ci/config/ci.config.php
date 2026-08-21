@@ -1,5 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
+use Doctrine\ORM\Mapping\Driver\AttributeDriver;
+
 require_once __DIR__ . '/../Entity/Entity.php';
 
 return [
@@ -31,9 +35,7 @@ return [
                     'executed_at_column_name' => 'executedAt',
                     'execution_time_column_name' => 'executionTime',
                 ],
-                'migrations_paths' => [
-                    'CiDoctrineMigrations' => 'ci',
-                ],
+                'migrations_paths' => ['CiDoctrineMigrations' => 'ci'],
                 'migrations' => [],
                 'all_or_nothing' => false,
                 'transactional' => false,
@@ -43,20 +45,16 @@ return [
             ],
         ],
         'cache' => [
-            'filesystem' => [
-                'directory' => 'ci/cache/DoctrineModule',
-            ],
+            'filesystem' => ['directory' => 'ci/cache/DoctrineModule'],
         ],
         'driver' => [
             'ci_driver' => [
-                'class' => Doctrine\ORM\Mapping\Driver\AnnotationDriver::class,
+                'class' => AttributeDriver::class,
                 'cache' => 'array',
                 'paths' => ['ci/Entity/'],
             ],
             'orm_default' => [
-                'drivers' => [
-                    'DoctrineORMModule\Ci\Entity' => 'ci_driver',
-                ],
+                'drivers' => ['DoctrineORMModule\Ci\Entity' => 'ci_driver'],
             ],
         ],
     ],

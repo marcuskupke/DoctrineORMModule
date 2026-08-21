@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Doctrine\DBAL\Driver\PDO\SQLite\Driver as SQLiteDriver;
-use Doctrine\ORM\Mapping\Driver\AnnotationDriver;
+use Doctrine\ORM\Mapping\Driver\AttributeDriver;
 use DoctrineModule\Service\EventManagerFactory;
 use DoctrineORMModule\Service\ConfigurationFactory;
 use DoctrineORMModule\Service\DBALConnectionFactory;
@@ -24,7 +24,7 @@ return [
         ],
         'driver' => [
             'DoctrineORMModuleTest\Assets\Entity' => [
-                'class' => AnnotationDriver::class,
+                'class' => AttributeDriver::class,
                 'cache' => 'array',
                 'paths' => [
                     __DIR__ . '/Assets/Entity',
